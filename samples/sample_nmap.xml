@@ -1,0 +1,150 @@
+<?xml version="1.0"?>
+<nmaprun scanner="nmap" args="nmap -sV -sC --script vuln,ssl-enum-ciphers -oX out.xml 192.168.1.0/24" start="1709251200">
+  <host>
+    <status state="up"/>
+    <address addr="192.168.1.10" addrtype="ipv4"/>
+    <address addr="AA:BB:CC:DD:EE:01" addrtype="mac" vendor="Dell"/>
+    <hostnames>
+      <hostname name="example-host"/>
+    </hostnames>
+    <os>
+      <osmatch name="Linux 5.4" accuracy="95">
+        <osclass osfamily="Linux" osgen="5.X">
+          <cpe>cpe:/o:linux:linux_kernel:5.4</cpe>
+        </osclass>
+      </osmatch>
+    </os>
+    <ports>
+      <port protocol="tcp" portid="22">
+        <state state="open"/>
+        <service name="ssh" product="OpenSSH" version="8.9">
+          <cpe>cpe:/a:openbsd:openssh:8.9</cpe>
+        </service>
+      </port>
+      <port protocol="tcp" portid="80">
+        <state state="open"/>
+        <service name="http" product="nginx" version="1.24.0">
+          <cpe>cpe:/a:igor_sysoev:nginx:1.24.0</cpe>
+        </service>
+      </port>
+      <port protocol="tcp" portid="443">
+        <state state="open"/>
+        <service name="https" product="nginx" version="1.24.0" tunnel="ssl"/>
+        <script id="ssl-enum-ciphers" output="TLSv1.0: ciphers: TLS_RSA_WITH_RC4_128_SHA - weak&#xa;TLSv1.2: ciphers: TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384&#xa;"/>
+        <script id="ssl-cert" output="Subject: CN=example-host&#xa;">
+          <elem key="subject.commonName">example-host</elem>
+          <elem key="issuer.commonName">Example CA</elem>
+          <elem key="validity.notAfter">2027-06-15T00:00:00</elem>
+          <elem key="pubkey.bits">2048</elem>
+          <elem key="sig_algo">sha256WithRSAEncryption</elem>
+        </script>
+      </port>
+    </ports>
+    <uptime seconds="864000"/>
+  </host>
+
+  <host>
+    <status state="up"/>
+    <address addr="192.168.1.20" addrtype="ipv4"/>
+    <hostnames>
+      <hostname name="db-server"/>
+    </hostnames>
+    <os>
+      <osmatch name="Ubuntu 18.04" accuracy="90">
+        <osclass osfamily="Linux" osgen="4.X">
+          <cpe>cpe:/o:canonical:ubuntu_linux:18.04</cpe>
+        </osclass>
+      </osmatch>
+    </os>
+    <ports>
+      <port protocol="tcp" portid="22">
+        <state state="open"/>
+        <service name="ssh" product="OpenSSH" version="7.2"/>
+      </port>
+      <port protocol="tcp" portid="3306">
+        <state state="open"/>
+        <service name="mysql" product="MySQL" version="5.5.62"/>
+      </port>
+      <port protocol="tcp" portid="6379">
+        <state state="open"/>
+        <service name="redis" product="Redis" version="4.0.9"/>
+      </port>
+    </ports>
+  </host>
+
+  <host>
+    <status state="up"/>
+    <address addr="192.168.1.30" addrtype="ipv4"/>
+    <hostnames>
+      <hostname name="legacy-windows"/>
+    </hostnames>
+    <os>
+      <osmatch name="Windows Server 2008 R2" accuracy="88">
+        <osclass osfamily="Windows" osgen="2008 R2">
+          <cpe>cpe:/o:microsoft:windows_server_2008:r2</cpe>
+        </osclass>
+      </osmatch>
+    </os>
+    <ports>
+      <port protocol="tcp" portid="21">
+        <state state="open"/>
+        <service name="ftp" product="Microsoft ftpd"/>
+      </port>
+      <port protocol="tcp" portid="80">
+        <state state="open"/>
+        <service name="http" product="Microsoft IIS httpd" version="7.5"/>
+      </port>
+      <port protocol="tcp" portid="135">
+        <state state="open"/>
+        <service name="msrpc" product="Microsoft Windows RPC"/>
+      </port>
+      <port protocol="tcp" portid="445">
+        <state state="open"/>
+        <service name="microsoft-ds" product="Samba" version="3.6.25"/>
+        <script id="smb-vuln-ms17-010" output="VULNERABLE:&#xa;  Remote Code Execution vulnerability in Microsoft SMBv1 servers (ms17-010)&#xa;    State: VULNERABLE&#xa;    Risk factor: HIGH&#xa;      CVE-2017-0143"/>
+      </port>
+      <port protocol="tcp" portid="3389">
+        <state state="open"/>
+        <service name="ms-wbt-server" product="Microsoft Terminal Services"/>
+      </port>
+    </ports>
+    <hostscript>
+      <script id="smb-vuln-ms17-010" output="VULNERABLE: Remote Code Execution vulnerability in Microsoft SMBv1 (EternalBlue)&#xa;CVE-2017-0143&#xa;CVE-2017-0144&#xa;CVE-2017-0145"/>
+    </hostscript>
+  </host>
+
+  <host>
+    <status state="up"/>
+    <address addr="192.168.1.40" addrtype="ipv4"/>
+    <hostnames>
+      <hostname name="web-app"/>
+    </hostnames>
+    <ports>
+      <port protocol="tcp" portid="22">
+        <state state="open"/>
+        <service name="ssh" product="OpenSSH" version="9.7"/>
+      </port>
+      <port protocol="tcp" portid="443">
+        <state state="open"/>
+        <service name="https" product="Apache httpd" version="2.4.49" tunnel="ssl"/>
+        <script id="ssl-enum-ciphers" output="TLSv1.2: ciphers: TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384&#xa;TLSv1.3: ciphers: TLS_AES_256_GCM_SHA384&#xa;"/>
+        <script id="ssl-cert" output="Subject: CN=web-app.example.com">
+          <elem key="subject.commonName">web-app.example.com</elem>
+          <elem key="issuer.commonName">web-app.example.com</elem>
+          <elem key="validity.notAfter">2027-12-31T00:00:00</elem>
+          <elem key="pubkey.bits">4096</elem>
+          <elem key="sig_algo">sha256WithRSAEncryption</elem>
+        </script>
+      </port>
+      <port protocol="tcp" portid="8080">
+        <state state="open"/>
+        <service name="http" product="Apache Tomcat" version="7.0.94"/>
+      </port>
+    </ports>
+  </host>
+
+  <host>
+    <status state="down"/>
+    <address addr="192.168.1.99" addrtype="ipv4"/>
+  </host>
+</nmaprun>

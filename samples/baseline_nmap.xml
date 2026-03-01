@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<nmaprun scanner="nmap">
+  <host>
+    <status state="up"/>
+    <address addr="192.168.1.10" addrtype="ipv4"/>
+    <hostnames>
+      <hostname name="example-host"/>
+    </hostnames>
+    <ports>
+      <port protocol="tcp" portid="22">
+        <state state="open"/>
+        <service name="ssh" product="OpenSSH" version="8.2"/>
+      </port>
+      <port protocol="tcp" portid="80">
+        <state state="open"/>
+        <service name="http" product="nginx" version="1.18.0"/>
+      </port>
+    </ports>
+  </host>
+
+  <host>
+    <status state="up"/>
+    <address addr="192.168.1.50" addrtype="ipv4"/>
+    <hostnames>
+      <hostname name="old-server"/>
+    </hostnames>
+    <ports>
+      <port protocol="tcp" portid="22">
+        <state state="open"/>
+        <service name="ssh" product="OpenSSH" version="7.4"/>
+      </port>
+    </ports>
+  </host>
+</nmaprun>
