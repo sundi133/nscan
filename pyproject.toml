@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "net-audit-report"
-version = "0.1.0"
-description = "Defensive analyzer for authorized Nmap XML results"
+version = "0.2.0"
+description = "Defensive network vulnerability analyzer for authorized Nmap XML results"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
