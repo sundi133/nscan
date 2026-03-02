@@ -28,6 +28,115 @@ pip install -e .
 
 **Requires:** Python 3.10+ and [Nmap](https://nmap.org/download.html) installed for scanning.
 
+## Getting started — step by step
+
+Follow these steps to go from zero to your first scan report.
+
+### Step 1: Install prerequisites
+
+You need Python 3.10+ and Nmap. Verify both are installed:
+
+```bash
+python3 --version   # must be 3.10 or higher
+nmap --version      # must be installed and on PATH
+```
+
+If Nmap is not installed:
+- **Ubuntu/Debian:** `sudo apt install nmap`
+- **macOS:** `brew install nmap`
+- **Windows:** Download from [nmap.org](https://nmap.org/download.html)
+
+### Step 2: Clone and install
+
+```bash
+git clone https://github.com/sundi133/nscan.git
+cd nscan
+python3 -m venv .venv
+source .venv/bin/activate    # Linux/macOS
+# .venv\Scripts\activate     # Windows
+pip install -e .
+```
+
+### Step 3: Verify the installation
+
+```bash
+net-audit-report --help
+net-audit-report profiles
+```
+
+You should see the list of available scan profiles.
+
+### Step 4: Run your first scan
+
+Pick a target you own or are authorized to scan, then run:
+
+```bash
+net-audit-report scan <TARGET> --profile quick --outdir my-first-report
+```
+
+Replace `<TARGET>` with an IP, hostname, or CIDR range. Example with Nmap's public test server:
+
+```bash
+net-audit-report scan scanme.nmap.org --profile quick --outdir my-first-report
+```
+
+This runs a fast scan (top 100 ports) and generates reports in `my-first-report/`.
+
+### Step 5: View the reports
+
+```bash
+# Open the HTML report (interactive dashboard with filtering)
+open my-first-report/report.html        # macOS
+xdg-open my-first-report/report.html    # Linux
+
+# Or read the markdown report in terminal
+cat my-first-report/report.md
+```
+
+### Step 6: Run a deeper scan
+
+Once you're comfortable, try a more thorough scan:
+
+```bash
+# Standard scan — version + scripts + OS detection
+net-audit-report scan 192.168.1.0/24 --outdir reports
+
+# Full vulnerability assessment — all 65535 ports + vuln scripts + SSL
+net-audit-report scan 192.168.1.0/24 --profile full --outdir reports
+
+# SSL/TLS audit on a web server
+net-audit-report scan myapp.example.com --profile ssl --outdir reports
+
+# UDP scan (requires sudo)
+net-audit-report scan 192.168.1.0/24 --profile udp --sudo --outdir reports
+```
+
+### Step 7: Compare scans over time
+
+Run a baseline scan, then scan again later and diff:
+
+```bash
+# Initial scan
+net-audit-report scan 192.168.1.0/24 --profile quick --save-xml baseline.xml
+
+# ... time passes, changes are made ...
+
+# Follow-up scan
+net-audit-report scan 192.168.1.0/24 --profile quick --save-xml current.xml
+
+# See what changed
+net-audit-report diff --baseline baseline.xml --current current.xml --outdir reports
+```
+
+### Try it without Nmap (analysis only)
+
+You can test the analysis pipeline using the included sample data — no Nmap needed:
+
+```bash
+net-audit-report analyze --input samples/sample_nmap.xml --outdir /tmp/test
+cat /tmp/test/report.md
+```
+
 ## Quick start
 
 ### Scan and analyze (one command)
