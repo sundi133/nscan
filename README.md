@@ -406,6 +406,25 @@ tests/               # 100+ tests covering all modules
 samples/             # Example Nmap XML files for testing
 ```
 
+## AI-powered agentic scanning (pentest-ai)
+
+This repo also includes **pentest-ai**, an AI-powered penetration testing tool that uses an agentic feedback loop. The AI decides what to scan next, which vulnerabilities to validate, and when it has enough data.
+
+See [`pentest-ai/README.md`](pentest-ai/README.md) for full documentation. Quick setup:
+
+```bash
+cd pentest-ai
+pip install -e .
+
+# Set your Anthropic API key for agentic reasoning
+export ANTHROPIC_API_KEY="sk-ant-api03-your-key-here"
+
+# Run an agentic scan
+pentest-ai run 192.168.1.0/24 -v
+```
+
+The agentic engine uses **Claude Sonnet 4** (`claude-sonnet-4-20250514`) by default. Without an API key, it falls back to rule-based heuristics.
+
 ## Extending
 
 - Add version rules: edit `KNOWN_VULNS` in `src/net_audit_report/vulns.py`
