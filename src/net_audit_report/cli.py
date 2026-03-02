@@ -136,6 +136,39 @@ def _add_report_args(parser: argparse.ArgumentParser) -> None:
                         help="Nuclei max requests/sec (default: 150)")
     parser.add_argument("--nuclei-timeout", type=int, default=900,
                         help="Nuclei max scan duration in seconds (default: 900)")
+    # DNS recon
+    parser.add_argument("--dns", action="store_true",
+                        help="Run DNS recon and subdomain enumeration (uses dig + subfinder)")
+    parser.add_argument("--no-subfinder", action="store_true",
+                        help="Skip subfinder subdomain enumeration during --dns")
+    parser.add_argument("--dns-timeout", type=int, default=300,
+                        help="DNS/subfinder timeout in seconds (default: 300)")
+    # Directory fuzzing
+    parser.add_argument("--fuzz", action="store_true",
+                        help="Run directory/file fuzzing on web services (uses ffuf)")
+    parser.add_argument("--fuzz-wordlist",
+                        help="Custom wordlist for fuzzing (default: built-in common paths)")
+    parser.add_argument("--fuzz-extensions",
+                        default="",
+                        help="File extensions to append (e.g. '.php,.bak,.old')")
+    parser.add_argument("--fuzz-threads", type=int, default=40,
+                        help="Fuzzing threads (default: 40)")
+    parser.add_argument("--fuzz-timeout", type=int, default=300,
+                        help="Fuzzing timeout per target in seconds (default: 300)")
+    # Credential brute-force
+    parser.add_argument("--brute", action="store_true",
+                        help="Test default/common credentials (uses hydra if available)")
+    parser.add_argument("--no-hydra", action="store_true",
+                        help="Skip hydra; only test built-in default creds list")
+    parser.add_argument("--brute-timeout", type=int, default=120,
+                        help="Brute-force timeout per service in seconds (default: 120)")
+    # OSINT recon
+    parser.add_argument("--osint", action="store_true",
+                        help="Run OSINT recon (whois, HTTP security headers)")
+    parser.add_argument("--no-whois", action="store_true",
+                        help="Skip whois lookups during --osint")
+    parser.add_argument("--no-headers", action="store_true",
+                        help="Skip HTTP header checks during --osint")
     parser.add_argument("--quiet", "-q", action="store_true",
                         help="Suppress informational output")
 
@@ -213,6 +246,87 @@ def _run_analysis(xml_path: str, args: argparse.Namespace, outdir: Path) -> int:
                 if nuclei_result.findings:
                     findings.extend(nuclei_result.findings)
                     _log(f"  Nuclei partial findings: {len(nuclei_result.findings)}", quiet)
+
+    # DNS recon
+    if getattr(args, "dns", False):
+        from .dns_recon import run_dns_recon
+
+        _log("  Starting DNS recon...", quiet)
+        # Derive explicit targets from scan args if available
+        explicit_targets = getattr(args, "targets", None)
+        dns_results = run_dns_recon(
+            targets=explicit_targets or [],
+            hosts=hosts,
+            use_subfinder=not getattr(args, "no_subfinder", False),
+            timeout=getattr(args, "dns_timeout", 300),
+        )
+        dns_count = 0
+        for dr in dns_results:
+            findings.extend(dr.findings)
+            dns_count += len(dr.findings)
+            if dr.subdomains:
+                _log(f"    {dr.target}: {len(dr.subdomains)} subdomains found", quiet)
+        _log(f"  DNS findings: {dns_count}", quiet)
+
+    # Directory fuzzing
+    if getattr(args, "fuzz", False):
+        from .dir_fuzzer import run_dir_fuzz, check_ffuf_installed
+
+        installed, ffuf_info = check_ffuf_installed()
+        if not installed:
+            print(f"WARNING: {ffuf_info}", file=sys.stderr)
+            print("Skipping directory fuzzing.", file=sys.stderr)
+        else:
+            _log(f"  {ffuf_info}", quiet)
+            _log("  Starting directory fuzzing...", quiet)
+            fuzz_results = run_dir_fuzz(
+                hosts,
+                wordlist=getattr(args, "fuzz_wordlist", None),
+                timeout=getattr(args, "fuzz_timeout", 300),
+                threads=getattr(args, "fuzz_threads", 40),
+                extensions=getattr(args, "fuzz_extensions", ""),
+            )
+            fuzz_count = 0
+            for fr in fuzz_results:
+                findings.extend(fr.findings)
+                fuzz_count += len(fr.findings)
+                _log(f"    {fr.target}: {len(fr.hits)} hits ({fr.duration_seconds}s)", quiet)
+            _log(f"  Fuzzing findings: {fuzz_count}", quiet)
+
+    # Credential brute-force
+    if getattr(args, "brute", False):
+        from .brute_forcer import run_brute_force
+
+        _log("  Starting credential testing...", quiet)
+        brute_result = run_brute_force(
+            hosts,
+            use_hydra=not getattr(args, "no_hydra", False),
+            timeout_per_service=getattr(args, "brute_timeout", 120),
+        )
+        findings.extend(brute_result.findings)
+        _log(f"  Credential findings: {len(brute_result.findings)} "
+             f"({brute_result.targets_tested} services tested, "
+             f"{brute_result.duration_seconds}s)", quiet)
+        if brute_result.hits:
+            _log(f"  WARNING: {len(brute_result.hits)} default credential(s) found!", quiet)
+
+    # OSINT recon
+    if getattr(args, "osint", False):
+        from .osint_recon import run_osint
+
+        _log("  Starting OSINT recon...", quiet)
+        explicit_targets = getattr(args, "targets", None)
+        osint_results = run_osint(
+            hosts,
+            targets=explicit_targets,
+            check_headers=not getattr(args, "no_headers", False),
+            check_whois_data=not getattr(args, "no_whois", False),
+        )
+        osint_count = 0
+        for osr in osint_results:
+            findings.extend(osr.findings)
+            osint_count += len(osr.findings)
+        _log(f"  OSINT findings: {osint_count}", quiet)
 
     # Filter by minimum severity
     findings = [f for f in findings if SEV_RANK.get(f.severity, 9) <= min_sev]
