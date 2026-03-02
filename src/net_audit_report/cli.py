@@ -196,11 +196,12 @@ def _run_analysis(xml_path: str, args: argparse.Namespace, outdir: Path) -> int:
 
     if "csv" in formats:
         path = outdir / "report.csv"
-        rows = flatten_findings_for_csv(report.findings)
+        rows = flatten_findings_for_csv(report.findings, report)
         write_csv(
             path, rows,
             fieldnames=["host", "severity", "title", "category", "protocol", "port",
-                        "detail", "recommendation", "cves", "vuln_id"],
+                        "detail", "recommendation", "cves", "vuln_id",
+                        "risk_score", "risk_level"],
         )
         written.append(str(path))
 
