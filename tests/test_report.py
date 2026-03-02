@@ -55,8 +55,8 @@ def test_render_markdown():
     md = render_markdown(report)
     assert "# Network Audit Report" in md
     assert "192.168.1.10" in md
-    assert "## Findings Summary" in md
-    assert "Critical:" in md
+    assert "## Severity Breakdown" in md
+    assert "CRITICAL" in md
 
 
 def test_render_html():
