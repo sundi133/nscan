@@ -121,6 +121,21 @@ def _add_report_args(parser: argparse.ArgumentParser) -> None:
                         help="Skip SSL/TLS analysis")
     parser.add_argument("--no-compliance", action="store_true",
                         help="Skip compliance checks")
+    parser.add_argument("--nuclei", action="store_true",
+                        help="Run Nuclei vulnerability scan after Nmap (requires nuclei installed)")
+    parser.add_argument("--nuclei-severity",
+                        default="critical,high,medium,low",
+                        help="Nuclei severity filter (default: critical,high,medium,low)")
+    parser.add_argument("--nuclei-tags",
+                        help="Nuclei template tags to include (e.g. 'cve,misconfig')")
+    parser.add_argument("--nuclei-exclude-tags",
+                        help="Nuclei template tags to exclude")
+    parser.add_argument("--nuclei-templates",
+                        help="Path to custom Nuclei templates")
+    parser.add_argument("--nuclei-rate-limit", type=int, default=150,
+                        help="Nuclei max requests/sec (default: 150)")
+    parser.add_argument("--nuclei-timeout", type=int, default=900,
+                        help="Nuclei max scan duration in seconds (default: 900)")
     parser.add_argument("--quiet", "-q", action="store_true",
                         help="Suppress informational output")
 
@@ -165,6 +180,39 @@ def _run_analysis(xml_path: str, args: argparse.Namespace, outdir: Path) -> int:
         compliance_findings = check_compliance(hosts)
         findings.extend(compliance_findings)
         _log(f"  Compliance findings: {len(compliance_findings)}", quiet)
+
+    # Nuclei scan
+    if getattr(args, "nuclei", False):
+        from .nuclei_scanner import check_nuclei_installed, run_nuclei_on_hosts
+
+        installed, nuclei_info = check_nuclei_installed()
+        if not installed:
+            print(f"WARNING: {nuclei_info}", file=sys.stderr)
+            print("Skipping Nuclei scan.", file=sys.stderr)
+        else:
+            _log(f"  Nuclei: {nuclei_info}", quiet)
+            _log(f"  Starting Nuclei scan...", quiet)
+
+            nuclei_result = run_nuclei_on_hosts(
+                hosts,
+                severity=getattr(args, "nuclei_severity", "critical,high,medium,low"),
+                timeout=getattr(args, "nuclei_timeout", 900),
+                rate_limit=getattr(args, "nuclei_rate_limit", 150),
+                tags=getattr(args, "nuclei_tags", None),
+                exclude_tags=getattr(args, "nuclei_exclude_tags", None),
+                templates=getattr(args, "nuclei_templates", None),
+            )
+
+            if nuclei_result.success:
+                findings.extend(nuclei_result.findings)
+                _log(f"  Nuclei findings: {len(nuclei_result.findings)} "
+                     f"({nuclei_result.duration_seconds}s)", quiet)
+            else:
+                _log(f"  Nuclei scan had issues: {nuclei_result.stderr[:200]}", quiet)
+                # Still include any partial findings
+                if nuclei_result.findings:
+                    findings.extend(nuclei_result.findings)
+                    _log(f"  Nuclei partial findings: {len(nuclei_result.findings)}", quiet)
 
     # Filter by minimum severity
     findings = [f for f in findings if SEV_RANK.get(f.severity, 9) <= min_sev]
